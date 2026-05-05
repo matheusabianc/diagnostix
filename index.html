@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Diagnóstico de IA — Grupo IX</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0a;
+    --surface: #111111;
+    --surface2: #181818;
+    --border: rgba(255,255,255,0.08);
+    --border-hover: rgba(255,255,255,0.18);
+    --text: #f0f0f0;
+    --text-muted: #888;
+    --text-dim: #444;
+    --accent: #F9B000;
+    --accent-dim: rgba(249,176,0,0.08);
+    --accent-mid: rgba(249,176,0,0.28);
+    --accent-border: rgba(249,176,0,0.3);
+    --frio: #4ab3f4;
+    --frio-bg: rgba(74,179,244,0.08);
+    --frio-border: rgba(74,179,244,0.2);
+    --morno: #f4a24a;
+    --morno-bg: rgba(244,162,74,0.08);
+    --morno-border: rgba(244,162,74,0.2);
+    --quente: #F9B000;
+    --quente-bg: rgba(249,176,0,0.08);
+    --quente-border: rgba(249,176,0,0.2);
+    --font: 'Sora', sans-serif;
+    --mono: 'DM Mono', monospace;
+    --radius: 14px;
+    --radius-sm: 8px;
+  }
+
+  html, body {
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 1rem;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrap {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 600px;
+    padding: 3rem 0 5rem;
+  }
+
+  .header { margin-bottom: 3rem; animation: fadeUp 0.6s ease both; }
+
+  .logo-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    background: var(--accent-dim);
+    border: 1px solid var(--accent-border);
+    border-radius: 99px;
+    padding: 5px 14px;
+    margin-bottom: 1.5rem;
+  }
+
+  .logo-tag::before {
+    content: '';
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  .header-title {
+    font-size: clamp(26px, 5vw, 36px);
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.75rem;
+  }
+
+  .header-sub {
+    font-size: 14px;
+    color: var(--text-muted);
+    line-height: 1.65;
+    max-width: 440px;
+  }
+
+  .progress-area { margin-bottom: 2rem; }
+
+  .progress-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+
+  .progress-step { font-family: var(--mono); font-size: 11px; color: var(--text-muted); letter-spacing: 0.08em; }
+  .progress-pct  { font-family: var(--mono); font-size: 11px; color: var(--accent); }
+
+  .progress-track { height: 2px; background: var(--border); border-radius: 99px; overflow: hidden; }
+  .progress-fill  {
+    height: 100%; background: var(--accent); border-radius: 99px;
+    transition: width 0.5s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 2rem;
+    animation: fadeUp 0.35s ease both;
+  }
+
+  @keyframes fadeUp {
+    from { opacity:0; transform:translateY(14px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+
+  .question-num {
+    font-family: var(--mono); font-size: 11px; color: var(--text-dim);
+    letter-spacing: 0.1em; margin-bottom: 0.75rem;
+  }
+
+  .question-text {
+    font-size: 18px; font-weight: 500; line-height: 1.4;
+    letter-spacing: -0.01em; margin-bottom: 1.5rem;
+  }
+
+  .options { display: flex; flex-direction: column; gap: 8px; }
+
+  .opt {
+    display: flex; align-items: flex-start; gap: 14px;
+    background: transparent; border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 13px 16px;
+    cursor: pointer; text-align: left; width: 100%;
+    font-family: var(--font);
+    transition: border-color 0.12s, background 0.12s;
+  }
+
+  .opt:hover { border-color: var(--border-hover); background: var(--surface2); }
+  .opt.selected { border-color: var(--accent); background: var(--accent-dim); }
+
+  @keyframes optFlash {
+    0%   { background: var(--accent-mid); border-color: var(--accent); }
+    100% { background: var(--accent-dim); border-color: var(--accent); }
+  }
+  .opt.flash { animation: optFlash 0.38s ease both; }
+
+  .opt-letter {
+    font-family: var(--mono); font-size: 11px; color: var(--text-dim);
+    min-width: 16px; padding-top: 2px; flex-shrink: 0; transition: color 0.12s;
+  }
+  .opt.selected .opt-letter, .opt.flash .opt-letter { color: var(--accent); }
+
+  .opt-text { font-size: 13.5px; color: var(--text-muted); line-height: 1.55; flex: 1; transition: color 0.12s; }
+  .opt.selected .opt-text, .opt.flash .opt-text { color: var(--text); }
+
+  .opt-check {
+    margin-left: auto; margin-top: 2px; flex-shrink: 0;
+    width: 16px; height: 16px; border-radius: 50%; background: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; transform: scale(0.5);
+    transition: opacity 0.15s, transform 0.15s;
+  }
+  .opt.selected .opt-check, .opt.flash .opt-check { opacity: 1; transform: scale(1); }
+  .opt-check::after {
+    content: ''; width: 5px; height: 3px;
+    border-left: 1.5px solid #0a0a0a; border-bottom: 1.5px solid #0a0a0a;
+    transform: rotate(-45deg) translateY(-1px); display: block;
+  }
+
+  .nav {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-top: 1.5rem;
+  }
+
+  .btn-back {
+    font-family: var(--font); font-size: 13px; color: var(--text-dim);
+    background: none; border: none; cursor: pointer; padding: 0; transition: color 0.15s;
+  }
+  .btn-back:hover { color: var(--text-muted); }
+
+  /* RESULTADO */
+  .result-hero {
+    text-align: center; padding: 1.5rem 0 2rem;
+    border-bottom: 1px solid var(--border); margin-bottom: 1.75rem;
+  }
+
+  .score-ring-wrap {
+    position: relative; width: 120px; height: 120px; margin: 0 auto 1.25rem;
+  }
+  .score-ring-wrap svg { transform: rotate(-90deg); display: block; }
+  .score-ring-bg  { fill: none; stroke: rgba(255,255,255,0.06); stroke-width: 6; }
+  .score-ring-fill {
+    fill: none; stroke-width: 6; stroke-linecap: round;
+    stroke-dasharray: 314; stroke-dashoffset: 314;
+    transition: stroke-dashoffset 1.2s cubic-bezier(0.4,0,0.2,1);
+  }
+  .score-inner {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+  }
+  .score-num { font-family: var(--mono); font-size: 32px; font-weight: 500; line-height: 1; }
+  .score-den { font-family: var(--mono); font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+
+  .result-badge {
+    display: inline-block; font-family: var(--mono); font-size: 11px;
+    letter-spacing: 0.1em; padding: 5px 16px; border-radius: 99px; margin-bottom: 1rem;
+  }
+  .badge-frio   { background: var(--frio-bg);   color: var(--frio);   border: 1px solid var(--frio-border); }
+  .badge-morno  { background: var(--morno-bg);  color: var(--morno);  border: 1px solid var(--morno-border); }
+  .badge-quente { background: var(--quente-bg); color: var(--quente); border: 1px solid var(--quente-border); }
+
+  .result-title { font-size: 20px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 0.6rem; }
+  .result-desc  { font-size: 14px; color: var(--text-muted); line-height: 1.65; max-width: 420px; margin: 0 auto; }
+
+  .trava-box {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-left: 3px solid var(--accent); border-radius: var(--radius-sm);
+    padding: 14px 16px; margin-bottom: 1.75rem;
+  }
+  .trava-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; color: var(--accent); margin-bottom: 5px; }
+  .trava-text  { font-size: 14px; color: var(--text); line-height: 1.5; }
+
+  .section-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; color: var(--text-dim); margin-bottom: 1rem; }
+
+  .breakdown-grid { display: flex; flex-direction: column; gap: 10px; margin-bottom: 1.75rem; }
+
+  .breakdown-item { display: grid; grid-template-columns: 1fr 110px 28px; align-items: center; gap: 12px; }
+  .b-name { font-size: 13px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .b-bar-track { height: 3px; background: var(--border); border-radius: 99px; overflow: hidden; }
+  .b-bar-fill  { height: 100%; background: var(--accent); border-radius: 99px; width: 0%; transition: width 1s cubic-bezier(0.4,0,0.2,1); }
+  .b-val       { font-family: var(--mono); font-size: 11px; color: var(--text-dim); text-align: right; }
+
+  /* CTA */
+  .cta-section { border-top: 1px solid var(--border); padding-top: 1.75rem; text-align: center; }
+  .cta-pre { font-size: 14px; color: var(--text-muted); margin-bottom: 1.25rem; line-height: 1.6; }
+
+  .btn-cta {
+    display: inline-flex; align-items: center; gap: 10px;
+    font-family: var(--font); font-size: 14px; font-weight: 600;
+    color: #0a0a0a; background: var(--accent);
+    border: none; border-radius: var(--radius-sm);
+    padding: 14px 28px; cursor: pointer; text-decoration: none;
+    transition: opacity 0.15s, transform 0.1s;
+    width: 100%; justify-content: center;
+  }
+  .btn-cta:hover { opacity: 0.88; }
+  .btn-cta:active { transform: scale(0.97); }
+
+  /* Toast de link copiado */
+  .toast {
+    position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--surface); border: 1px solid var(--accent-border);
+    color: var(--text); font-family: var(--mono); font-size: 12px;
+    letter-spacing: 0.06em; padding: 10px 20px; border-radius: 99px;
+    opacity: 0; transition: opacity 0.25s, transform 0.25s;
+    pointer-events: none; z-index: 99; white-space: nowrap;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  .btn-restart {
+    display: block; margin: 1rem auto 0;
+    font-family: var(--mono); font-size: 11px; color: var(--text-dim);
+    background: none; border: none; cursor: pointer;
+    letter-spacing: 0.06em; transition: color 0.15s;
+  }
+  .btn-restart:hover { color: var(--text-muted); }
+
+  @media (max-width: 480px) {
+    .card { padding: 1.5rem; }
+    .breakdown-item { grid-template-columns: 1fr 70px 24px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="header">
+    <div class="logo-tag">GRUPO IX · DIAGNÓSTICO IA</div>
+    <h1 class="header-title">Descubra o nível de maturidade digital da sua empresa</h1>
+    <p class="header-sub">10 perguntas. 3 minutos. Um diagnóstico honesto — e uma consultoria gratuita para quem chegar ao final.</p>
+  </div>
+
+  <div class="progress-area">
+    <div class="progress-meta">
+      <span class="progress-step" id="step-label">Pergunta 1 de 10</span>
+      <span class="progress-pct"  id="step-pct">10%</span>
+    </div>
+    <div class="progress-track">
+      <div class="progress-fill" id="progress-fill" style="width:10%"></div>
+    </div>
+  </div>
+
+  <div class="card" id="card"></div>
+</div>
+
+<div class="toast" id="toast">Link copiado!</div>
+
+<script>
+const questions = [
+  { q: "Como sua empresa capta novos clientes hoje?", opts: [
+    "Não temos nenhuma estratégia — os clientes chegam por acaso ou indicação esporádica",
+    "Dependemos quase que exclusivamente de indicações de clientes atuais",
+    "Temos presença digital, mas sem investimento ou processo definido",
+    "Investimos em marketing digital, mas sem controle claro dos resultados",
+    "Temos canais estruturados, metas de aquisição e acompanhamos os resultados de perto"
+  ]},
+  { q: "Você sabe de onde vêm a maioria dos seus clientes?", opts: [
+    "Não fazemos ideia — nunca paramos para mapear isso",
+    "Achamos que sabemos, mas é uma percepção sem nenhum dado",
+    "Conhecemos o canal principal, mas não temos registro formal",
+    "Acompanhamos alguns canais, mas os dados são incompletos",
+    "Rastreamos a origem de cada lead com ferramentas e tomamos decisões com base nisso"
+  ]},
+  { q: "Sua empresa tem presença digital ativa?", opts: [
+    "Não — estamos ausentes ou com perfis completamente desatualizados",
+    "Temos perfis criados, mas publicamos raramente e sem planejamento",
+    "Publicamos com alguma regularidade, mas sem estratégia ou objetivo claro",
+    "Temos presença consistente, mas ainda não conseguimos converter isso em clientes",
+    "Nossa presença digital gera autoridade, engajamento e novos clientes com frequência"
+  ]},
+  { q: "Como sua empresa lida com os dados de clientes e leads?", opts: [
+    "Não temos controle — as informações ficam no WhatsApp ou na cabeça das pessoas",
+    "Usamos planilhas, mas desatualizadas e sem padrão",
+    "Temos um CRM ou sistema, mas ele é mal alimentado e pouco usado",
+    "Usamos um sistema com regularidade, mas as informações não chegam a quem decide",
+    "CRM ativo, histórico completo, segmentação e follow-up funcionando de verdade"
+  ]},
+  { q: "Você consegue medir o retorno do que investe em marketing?", opts: [
+    "Não investimos em marketing — não há nada para medir",
+    "Investimos, mas sem saber o que retorna",
+    "Sentimos que funciona, mas não temos números para provar",
+    "Acompanhamos algumas métricas, mas não conseguimos conectar ao faturamento",
+    "Sabemos o custo por lead, taxa de conversão e ROI por canal"
+  ]},
+  { q: "Como é o processo de vendas da sua empresa?", opts: [
+    "Não existe processo — cada venda acontece de um jeito diferente",
+    "Depende da habilidade individual de cada vendedor, sem padronização",
+    "Temos um roteiro básico, mas ele não é seguido de forma consistente",
+    "Existe um processo estruturado, mas ainda faltam métricas de acompanhamento",
+    "Processo definido, com etapas, scripts, metas e monitoramento constante"
+  ]},
+  { q: "Sua marca comunica claramente o que a empresa faz e para quem?", opts: [
+    "Não — temos dificuldade até internamente de explicar nossa proposta de valor",
+    "Sabemos o que fazemos, mas isso não aparece na nossa comunicação e visual",
+    "A identidade existe, mas é inconsistente entre os canais e materiais",
+    "Nossa comunicação é clara, mas ainda não transmite a autoridade que queremos",
+    "Nossa marca é reconhecida, consistente e comunica autoridade no mercado"
+  ]},
+  { q: "Sua empresa tem estratégia de retenção ou fidelização de clientes?", opts: [
+    "Não — o relacionamento praticamente termina após a venda",
+    "Fazemos contato eventual, mas sem nenhum processo por trás",
+    "Temos algumas ações de relacionamento, mas são pontuais e sem métricas",
+    "Acompanhamos os clientes ativos, mas ainda sem indicadores de retenção definidos",
+    "Monitoramos churn, LTV e temos réguas de relacionamento ativas e funcionando"
+  ]},
+  { q: "Como sua empresa usa Inteligência Artificial hoje?", opts: [
+    "Não usamos — o assunto ainda parece distante da nossa realidade",
+    "Experimentamos algumas ferramentas, mas sem continuidade ou resultado prático",
+    "Usamos ferramentas como ChatGPT no dia a dia, mas de forma isolada",
+    "Temos algumas automações com IA, mas ainda de forma experimental",
+    "IA está integrada em processos reais de marketing, vendas ou atendimento"
+  ]},
+  { q: "O que mais trava o crescimento da sua empresa hoje?", opts: [
+    "Invisibilidade — as pessoas simplesmente não nos encontram",
+    "Falta de processo — perdemos oportunidades por desorganização",
+    "Falta de clareza — sabemos que tem problema, mas não conseguimos identificar onde",
+    "Falta de verba — não sabemos onde investir com segurança",
+    "Falta de escala — temos estrutura, mas não conseguimos crescer sem perder qualidade"
+  ]}
+];
+
+const shortLabels = [
+  "Captação de clientes","Origem dos clientes","Presença digital",
+  "Gestão de dados","Medição de resultados","Processo de vendas",
+  "Força da marca","Retenção de clientes","Uso de IA"
+];
+
+const letters = ['A','B','C','D','E'];
+let current = 0;
+let answers = new Array(10).fill(null);
+let blocked = false;
+
+const WHATSAPP_NUM = '5519981201333';
+
+/* ── URL HASH ── */
+function buildResultHash(ans) {
+  return '#r=' + ans.map(function(a){ return a === null ? 'x' : a; }).join(',');
+}
+
+function parseResultHash() {
+  var hash = window.location.hash;
+  if (!hash || !hash.startsWith('#r=')) return null;
+  var parts = hash.slice(3).split(',');
+  if (parts.length !== 10) return null;
+  return parts.map(function(p){ return p === 'x' ? null : parseInt(p, 10); });
+}
+
+function buildShareURL(ans) {
+  return window.location.href.split('#')[0] + buildResultHash(ans);
+}
+
+/* ── UTILS ── */
+function getScore(ans) {
+  var t = 0;
+  for (var i = 0; i < 9; i++) if (ans[i] !== null) t += ans[i] + 1;
+  return t;
+}
+
+function getResult(score) {
+  if (score <= 18) return { label:'FRIO',   badgeClass:'badge-frio',   ringColor:'#4ab3f4',
+    title:'Empresa no início da jornada digital',
+    desc:'Sua empresa ainda opera de forma reativa, sem processos ou estratégia definidos. Há muito espaço para crescer — e os ganhos iniciais costumam ser os mais expressivos.' };
+  if (score <= 31) return { label:'MORNO',  badgeClass:'badge-morno',  ringColor:'#f4a24a',
+    title:'Base existe, mas falta direção',
+    desc:'Sua empresa já deu os primeiros passos, mas os esforços estão fragmentados. Com estrutura e estratégia, é possível converter esse potencial em crescimento consistente.' };
+  return             { label:'QUENTE', badgeClass:'badge-quente', ringColor:'#F9B000',
+    title:'Empresa estruturada, pronta para escalar',
+    desc:'Sua empresa já tem uma base sólida. O desafio agora é escala e inteligência — usar dados e automação para crescer sem perder qualidade.' };
+}
+
+function updateProgress(idx, total, label) {
+  var pct = Math.round(((idx + 1) / total) * 100);
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('step-label').textContent = label || ('Pergunta ' + (idx + 1) + ' de ' + total);
+  document.getElementById('step-pct').textContent = pct + '%';
+}
+
+function animateCard(fn) {
+  var card = document.getElementById('card');
+  card.style.animation = 'none';
+  void card.offsetWidth;
+  fn();
+  card.style.animation = 'fadeUp 0.35s ease both';
+}
+
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg || 'Link copiado!';
+  t.classList.add('show');
+  setTimeout(function(){ t.classList.remove('show'); }, 2500);
+}
+
+var wppIcon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>';
+
+/* ── QUIZ ── */
+function renderQuestion() {
+  blocked = false;
+  updateProgress(current, questions.length);
+  var q = questions[current];
+  var optsHtml = '';
+  q.opts.forEach(function(opt, i) {
+    var sel = answers[current] === i ? 'selected' : '';
+    optsHtml += '<button class="opt ' + sel + '" id="opt-' + i + '" onclick="selectOpt(' + i + ')">' +
+      '<span class="opt-letter">' + letters[i] + '</span>' +
+      '<span class="opt-text">' + opt + '</span>' +
+      '<span class="opt-check"></span>' +
+      '</button>';
+  });
+
+  animateCard(function() {
+    document.getElementById('card').innerHTML =
+      '<p class="question-num">PERGUNTA ' + String(current + 1).padStart(2,'0') + '</p>' +
+      '<p class="question-text">' + q.q + '</p>' +
+      '<div class="options">' + optsHtml + '</div>' +
+      '<div class="nav">' +
+        '<button class="btn-back" onclick="goBack()" style="' + (current === 0 ? 'visibility:hidden' : '') + '">← voltar</button>' +
+        '<span style="font-family:var(--mono);font-size:11px;color:var(--text-dim)">selecione uma opção</span>' +
+      '</div>';
+  });
+}
+
+function selectOpt(i) {
+  if (blocked) return;
+  blocked = true;
+  answers[current] = i;
+  document.querySelectorAll('.opt').forEach(function(o){ o.classList.remove('selected','flash'); });
+  var target = document.getElementById('opt-' + i);
+  if (target) target.classList.add('selected','flash');
+  setTimeout(function() {
+    if (current === questions.length - 1) {
+      var hash = buildResultHash(answers);
+      history.replaceState(null, '', hash);
+      renderResult(answers);
+    } else {
+      current++;
+      renderQuestion();
+    }
+  }, 420);
+}
+
+function goBack() {
+  if (current > 0) { current--; renderQuestion(); }
+}
+
+/* ── RESULTADO ── */
+function renderResult(ans) {
+  var score   = getScore(ans);
+  var res     = getResult(score);
+  var lastOpt = questions[9].opts[ans[9] !== null ? ans[9] : 0];
+  var circumference = 314;
+  var offset  = circumference - (circumference * (score / 45));
+  var shareURL = buildShareURL(ans);
+
+  var wppMsg = encodeURIComponent('Aqui está meu diagnóstico e quero saber sobre a consultoria! ' + shareURL);
+  var wppURL = 'https://wa.me/' + WHATSAPP_NUM + '?text=' + wppMsg;
+
+  updateProgress(9, questions.length, 'Diagnóstico concluído');
+  document.getElementById('progress-fill').style.width = '100%';
+  document.getElementById('step-pct').textContent = '100%';
+
+  var breakdownHtml = '';
+  for (var i = 0; i < 9; i++) {
+    var val = ans[i] !== null ? ans[i] + 1 : 0;
+    breakdownHtml +=
+      '<div class="breakdown-item">' +
+        '<span class="b-name">' + shortLabels[i] + '</span>' +
+        '<div class="b-bar-track"><div class="b-bar-fill" id="bar-' + i + '"></div></div>' +
+        '<span class="b-val">' + val + '/5</span>' +
+      '</div>';
+  }
+
+  animateCard(function() {
+    document.getElementById('card').innerHTML =
+      '<div class="result-hero">' +
+        '<div class="score-ring-wrap">' +
+          '<svg width="120" height="120" viewBox="0 0 120 120">' +
+            '<circle class="score-ring-bg" cx="60" cy="60" r="50"/>' +
+            '<circle class="score-ring-fill" id="ring" cx="60" cy="60" r="50" style="stroke:' + res.ringColor + ';stroke-dashoffset:314"/>' +
+          '</svg>' +
+          '<div class="score-inner">' +
+            '<span class="score-num" id="score-counter">0</span>' +
+            '<span class="score-den">/ 45</span>' +
+          '</div>' +
+        '</div>' +
+        '<span class="result-badge ' + res.badgeClass + '">' + res.label + '</span>' +
+        '<p class="result-title">' + res.title + '</p>' +
+        '<p class="result-desc">' + res.desc + '</p>' +
+      '</div>' +
+      '<div class="trava-box">' +
+        '<p class="trava-label">PRINCIPAL TRAVA IDENTIFICADA</p>' +
+        '<p class="trava-text">' + lastOpt + '</p>' +
+      '</div>' +
+      '<p class="section-label">MATURIDADE POR ÁREA</p>' +
+      '<div class="breakdown-grid">' + breakdownHtml + '</div>' +
+      '<div class="cta-section">' +
+        '<p class="cta-pre">Pronto. Agora é só dar o próximo passo.</p>' +
+        '<a class="btn-cta" href="' + wppURL + '" target="_blank" style="margin-bottom:10px">' + wppIcon + 'Falar com especialista</a>' +
+        '<button class="btn-restart" onclick="restart()">refazer diagnóstico</button>' +
+      '</div>';
+  });
+
+  setTimeout(function() {
+    var ring = document.getElementById('ring');
+    if (ring) ring.style.strokeDashoffset = offset;
+
+    var counter = document.getElementById('score-counter');
+    var count = 0;
+    var stepMs = Math.max(18, Math.round(1100 / (score || 1)));
+    var interval = setInterval(function() {
+      count++;
+      if (counter) counter.textContent = count;
+      if (count >= score) clearInterval(interval);
+    }, stepMs);
+
+    for (var i = 0; i < 9; i++) {
+      (function(idx) {
+        setTimeout(function() {
+          var bar = document.getElementById('bar-' + idx);
+          var val = ans[idx] !== null ? ans[idx] + 1 : 0;
+          if (bar) bar.style.width = (val / 5 * 100) + '%';
+        }, 200 + idx * 80);
+      })(i);
+    }
+  }, 100);
+}
+
+function restart() {
+  current = 0;
+  answers = new Array(10).fill(null);
+  history.replaceState(null, '', window.location.pathname + window.location.search);
+  renderQuestion();
+}
+
+/* ── INIT: checar se há resultado na URL ── */
+(function init() {
+  var saved = parseResultHash();
+  if (saved) {
+    answers = saved;
+    renderResult(saved);
+  } else {
+    renderQuestion();
+  }
+})();
+</script>
+</body>
+</html>
